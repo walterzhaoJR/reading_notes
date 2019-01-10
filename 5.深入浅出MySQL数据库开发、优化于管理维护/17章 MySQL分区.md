@@ -71,3 +71,57 @@ Query OK, 0 rows affected (0.03 sec)
 ```
 
 * 线性 hash分区的优点是分区维护方便，但是数据没有常规hash分布均匀
+
+### 17.2.5 key分区
+
+*  类似于HASH分区，HASH用户可以自己定义表达式，key分区不可以
+* HASH只支持整数分区，key支持除过blob、text外的其他类型作为列的分区键
+
+```sql
+mysql> create table rc6(
+    -> id int not null,
+    -> ename varchar(30),
+    -> hired date not null default '1970-01-01',
+    -> separated date not null default '9999-12-31',
+    -> job varchar(30),
+    -> store_id int not null)
+    -> partition by key(job) partitions 4;
+```
+
+* 如果不指定分区键key，那么会默认使用主键分区，没有主键的时候，会选择非空唯一键（unique）作为分区键（非空），以上都没有的话，就不能指定分区
+* key分区也支持在前面使用linear，分区编号通过2的幂运算，二不是取模
+
+
+
+### 17.2.6 子分区
+
+* 子分区就是在分区表中再次分区，也叫符合分区
+* 支持range或list分区上的hash或者key分区
+
+```sql
+mysql> create table rc7(
+    -> id int,purchased date)
+    -> partition by range(year(purchased))
+    -> subpartition by hash(to_days(purchased))
+    -> subpartitions 2
+    -> ( partition p0 values less than (1990),
+    -> partition p1 values less than (2000),
+    -> partition p2 values less than MAXVALUE);
+```
+
+* 查询的结果
+
+```sql
+mysql> select PARTITION_NAME part_name,SUBPARTITION_NAME sub_part ,TABLE_ROWS rows from partitions where table_name = 'rc7';
++-----------+----------+------+
+| part_name | sub_part | rows |
++-----------+----------+------+
+| p0        | p0sp0    |    0 |
+| p0        | p0sp1    |    0 |
+| p1        | p1sp0    |    1 |
+| p1        | p1sp1    |    3 |
+| p2        | p2sp0    |    0 |
+| p2        | p2sp1    |    0 |
++-----------+----------+------+
+```
+
