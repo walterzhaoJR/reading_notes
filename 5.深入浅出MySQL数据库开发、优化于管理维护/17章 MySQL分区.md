@@ -124,4 +124,41 @@ mysql> select PARTITION_NAME part_name,SUBPARTITION_NAME sub_part ,TABLE_ROWS ro
 | p2        | p2sp1    |    0 |
 +-----------+----------+------+
 ```
+### 17.2.7 NUL值的处理
+* 在range分区中insert的NULL会当做最小值处理
+* list分区insert NULL值时，如果分区中没有包含NULL的分区，报错，如果有NULL值的分区，则写入那个分区
 
+## 17.3 分区管理
+### 17.3.1 range和list分区管理
+* 在list和range管理相似：
+    * 删除分区：alter table table_name drop partition partition_name;删除分区的同时，数据也被删除。
+    * 增加分区：alter table table_name add partition (partition partition_name values less than(2000));range分区只能从最大端添加分区，否则报错；增加list分区，增加的分区必须是唯一的，不能喝原有的分区重叠。
+    * 合并、拆分分区：mysql提供了不丢失数据的情况下合并和拆分分区的方法。例如将一个range分区的某个分区拆分，将p3分区（2000~2015）拆分成p2分区（2000~2005）和p3（剩下的）。
+        ```sql
+        alter table table_name reorganize partition p3 into(
+        partition p2 values less than (2005),
+        partition p3 values less than (2015)
+        );
+        ```
+        合并多个分区为一个分区：
+        ```sql
+        alter table table_name reorganize partition p1,p2,p3 into (
+            partition p1 values less than(2015)
+        );
+        ```
+        重新定义区间的时候，只能定义相邻区间，不能跨越区间，并且新定义的区间要和覆盖原区间，新的区间不能改变分区类型，如不能把range改成hash分区。
+### 17.3.2hash和key分区管理
+* 不能通过像range和list分区那样删除hash和key分区。
+    * coalesce只能减少分区，原分区：
+    ```sql
+    partition by hash (id) partitions 4;
+    ```
+    通过如下语句调整分区从4个到2个：
+
+    ```sql
+    alter table table_name coalesce partition 2;
+    ```
+    * 增加分区，曾加8个分区，而不是增加到8个分区：
+    ```sql
+    alter atble table_name partition partitions 8;
+    ```
