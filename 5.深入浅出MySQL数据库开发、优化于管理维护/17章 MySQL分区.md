@@ -160,5 +160,5 @@ mysql> select PARTITION_NAME part_name,SUBPARTITION_NAME sub_part ,TABLE_ROWS ro
     ```
     * 增加分区，曾加8个分区，而不是增加到8个分区：
     ```sql
-    alter atble table_name partition partitions 8;
+    alter atble table_name add partition partitions 8;
     ```
